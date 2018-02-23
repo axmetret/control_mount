@@ -1,0 +1,120 @@
+#!/bin/bash
+ID=$(pwd)/.usbID
+tmpID=$(pwd)/.tempID
+func_mount ()
+{
+ echo
+ echo -n 'Mount?(y/n) ' && read a
+  if [[ $a = y || $a = yes ]] ; then
+   echo 'Select the mount device(/dev/...)'
+   fdisk -l | grep 'Устройство' | sed -n '1p'
+   fdisk -l | grep '/dev/'
+   echo -n 'Enter: ' && read dev
+   echo 'Select the mount folder in /mnt/...' 
+   echo -n 'Enter: ' && read folder
+   mkdir /mnt/$folder
+   echo 'Wall... There is a mounting...'
+   mount $dev /mnt/$folder && echo "/mnt/$folder"  
+  elif [[ $a = n || $a = no ]] ; then
+   echo 'Ok...bay'
+   break;
+  fi
+}
+func_umount ()
+{
+ echo
+ echo -n 'Umount?(y/n) ' && read b
+  if [[ $b = y || $b = yes ]] ; then
+   echo 'Select the umount folder in /mnt/...' 
+   echo -n 'Enter: ' && read ufolder 
+   echo 'Wall... There is a umounting...'
+   umount /mnt/$ufolder && echo 'Good! umount.'
+  else 
+   echo 'Ok...Bay'
+   break;
+  fi
+}
+func_write ()
+{
+ echo 'All discovered devices:'
+ echo
+ lsusb | cut -c20-
+ echo
+ echo -n 'Select the device you want to add (1 or N):' && read N
+ lsusb | cut -c24-32 | sed -n $N'p' >> $ID
+}
+func_conditional_test ()
+{
+ #Arguments
+ 
+ lsusb | cut -c24-32 > $tmpID #Temporary file to scan
+ local a=$(cat $ID)
+ local b=$(cat $tmpID)
+
+ #Checking for new devices
+  select i in $b  ; do
+   if [[ $i = $a ]] ; then
+   echo
+   echo -e "\e[32mCheck\e[0m $i"
+   func_mount
+   break;
+  else 
+  echo -n 'This device is not in the database. Do you want to add this device?(y/n) ' && read add
+    if [[ $add = y || $add = yes ]] ; then
+     func_write
+     func_mount
+    elif [[ $add = n || $add = no ]] ; then
+     echo 'Bay...' 
+     break;
+    else
+     echo 'LOL, well, OK. Bay'
+     break;
+    fi
+  fi
+ done
+}
+func_first_start ()
+{
+ if [ -f $ID ] ; then
+  func_conditional_test
+ else
+  echo 'The first the script'
+  func_write
+  func_mount
+ fi  
+}
+func_help ()
+{
+ echo
+ echo 'This program is designed for organized work of USB devices'
+ echo 'Command: ./usb -parameter'
+ echo 'Parameter:'
+ echo '-m: media validation and mount'
+ echo '-u: umount'
+ echo '-h: help'
+ echo '||||||||||'
+ echo '|_\____/_|'
+ echo '|_r00_Hx_|'
+ echo '|_/____\_|'
+ echo '||||||||||'
+}
+
+while [ -n "$1" ] ; do
+ case "$1" in 
+  -m) func_first_start ;;
+  -u) func_umount ;;
+  -h) func_help ;;
+   *) echo 'Error, pleas enter ./usb -h' ;;
+  esac
+ shift
+done
+
+func_del ()
+{
+if [ -f $tmpID ] ; then
+ rm $tmpID
+else
+ echo
+fi
+}
+func_del
